@@ -32,6 +32,7 @@
     <None Include="WavSource.def">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="sound.xyz" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RiffParser.h">

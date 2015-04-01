@@ -196,6 +196,9 @@
     <ClCompile Include="WavSource.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="sound.xyz">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="WavSource.def" />
   </ItemGroup>
   <ItemGroup>
