@@ -27,6 +27,7 @@
 #include "WavSource.h"
 
 #include <assert.h>
+#include <atlbase.h>
 
 
 template <class T>
@@ -62,6 +63,8 @@ LONGLONG BufferSizeFromAudioDuration(const WAVEFORMATEX *pWav, LONGLONG duration
 
 HRESULT WavSource::CreateInstance(REFIID iid, void **ppSource)
 {
+    ATLTRACE2("BENR: WavSource::CreateInstance()"); 
+
     if (ppSource == NULL)
     {
         return E_POINTER;
@@ -90,8 +93,8 @@ HRESULT WavSource::CreateInstance(REFIID iid, void **ppSource)
 // hr: If the constructor fails, this value is set to a failure code.
 //-------------------------------------------------------------------
 
-WavSource::WavSource(HRESULT& hr) 
-  : m_nRefCount(1),
+WavSource::WavSource(HRESULT& hr)
+    : m_nRefCount(1),
     m_pEventQueue(NULL),
     m_pPresentationDescriptor(NULL),
     m_IsShutdown(FALSE),
@@ -144,7 +147,7 @@ ULONG  WavSource::Release()
 
 HRESULT WavSource::QueryInterface(REFIID iid, void** ppv)
 {
-    static const QITAB qit[] = 
+    static const QITAB qit[] =
     {
         QITABENT(WavSource, IMFMediaEventGenerator),
         QITABENT(WavSource, IMFMediaSource),
@@ -162,6 +165,7 @@ HRESULT WavSource::QueryInterface(REFIID iid, void** ppv)
 
 HRESULT WavSource::BeginGetEvent(IMFAsyncCallback* pCallback, IUnknown* punkState)
 {
+    ATLTRACE2("BENR: WavSource::BeginGetEvent()");
     HRESULT hr = S_OK;
 
     EnterCriticalSection(&m_critSec);
@@ -169,7 +173,7 @@ HRESULT WavSource::BeginGetEvent(IMFAsyncCallback* pCallback, IUnknown* punkStat
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pEventQueue->BeginGetEvent(pCallback, punkState);
     }
 
@@ -180,6 +184,7 @@ HRESULT WavSource::BeginGetEvent(IMFAsyncCallback* pCallback, IUnknown* punkStat
 
 HRESULT WavSource::EndGetEvent(IMFAsyncResult* pResult, IMFMediaEvent** ppEvent)
 {
+    ATLTRACE2("BENR: WavSource::EndGetEvent()");
     HRESULT hr = S_OK;
 
     EnterCriticalSection(&m_critSec);
@@ -187,7 +192,7 @@ HRESULT WavSource::EndGetEvent(IMFAsyncResult* pResult, IMFMediaEvent** ppEvent)
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pEventQueue->EndGetEvent(pResult, ppEvent);
     }
 
@@ -198,6 +203,7 @@ HRESULT WavSource::EndGetEvent(IMFAsyncResult* pResult, IMFMediaEvent** ppEvent)
 
 HRESULT WavSource::GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent)
 {
+    ATLTRACE2("BENR: WavSource::GetEvent()");
     // NOTE: GetEvent can block indefinitely, so we don't hold the
     //       WavSource lock. This requires some juggling with the
     //       event queue pointer.
@@ -220,7 +226,7 @@ HRESULT WavSource::GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent)
     LeaveCriticalSection(&m_critSec);
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pQueue->GetEvent(dwFlags, ppEvent);
     }
 
@@ -230,6 +236,7 @@ HRESULT WavSource::GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent)
 
 HRESULT WavSource::QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, const PROPVARIANT* pvValue)
 {
+    ATLTRACE2("BENR: WavSource::QueueEvent()");
     HRESULT hr = S_OK;
 
     EnterCriticalSection(&m_critSec);
@@ -237,7 +244,7 @@ HRESULT WavSource::QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRES
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pEventQueue->QueueEventParamVar(met, guidExtendedType, hrStatus, pvValue);
     }
 
@@ -257,6 +264,7 @@ HRESULT WavSource::QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRES
 
 HRESULT WavSource::CreatePresentationDescriptor(IMFPresentationDescriptor** ppPresentationDescriptor)
 {
+    ATLTRACE2("BENR: WavSource::CreatePresentationDescriptor()");
     if (ppPresentationDescriptor == NULL)
     {
         return E_POINTER;
@@ -269,7 +277,7 @@ HRESULT WavSource::CreatePresentationDescriptor(IMFPresentationDescriptor** ppPr
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_pPresentationDescriptor == NULL)
         {
             hr = CreatePresentationDescriptor();
@@ -278,7 +286,7 @@ HRESULT WavSource::CreatePresentationDescriptor(IMFPresentationDescriptor** ppPr
 
     // Clone our default presentation descriptor.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pPresentationDescriptor->Clone(ppPresentationDescriptor);
     }
 
@@ -295,6 +303,7 @@ HRESULT WavSource::CreatePresentationDescriptor(IMFPresentationDescriptor** ppPr
 
 HRESULT WavSource::GetCharacteristics(DWORD* pdwCharacteristics)
 {
+    ATLTRACE2("BENR: WavSource::GetCharacteristics()");
     if (pdwCharacteristics == NULL)
     {
         return E_POINTER;
@@ -303,12 +312,12 @@ HRESULT WavSource::GetCharacteristics(DWORD* pdwCharacteristics)
     EnterCriticalSection(&m_critSec);
 
     HRESULT hr = S_OK;
-    
+
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
-        *pdwCharacteristics =  MFMEDIASOURCE_CAN_PAUSE | MFMEDIASOURCE_CAN_SEEK;
+    {
+        *pdwCharacteristics = MFMEDIASOURCE_CAN_PAUSE | MFMEDIASOURCE_CAN_SEEK;
     }
 
     LeaveCriticalSection(&m_critSec);
@@ -327,10 +336,12 @@ HRESULT WavSource::Start(
     const PROPVARIANT* pvarStartPosition
     )
 {
+    ATLTRACE2("BENR: WavSource::Start()");
+
     HRESULT hr = S_OK;
     LONGLONG llStartOffset = 0;
-    BOOL bIsSeek = FALSE;    
-    BOOL bIsRestartFromCurrentPosition = FALSE;     
+    BOOL bIsSeek = FALSE;
+    BOOL bIsRestartFromCurrentPosition = FALSE;
     BOOL bQueuedStartEvent = FALSE;
 
     IMFMediaEvent *pEvent = NULL;
@@ -388,7 +399,7 @@ HRESULT WavSource::Start(
     else
     {
         // We don't support this time format.
-        hr =  MF_E_UNSUPPORTED_TIME_FORMAT;
+        hr = MF_E_UNSUPPORTED_TIME_FORMAT;
         goto done;
     }
 
@@ -437,7 +448,7 @@ HRESULT WavSource::Start(
             hr = pEvent->SetUINT64(MF_EVENT_SOURCE_ACTUAL_START, llStartOffset);
             if (FAILED(hr)) { goto done; }
         }
-        
+
         // Now  queue the event.
         hr = m_pEventQueue->QueueEvent(pEvent);
 
@@ -457,7 +468,7 @@ HRESULT WavSource::Start(
         {
             hr = m_pStream->QueueEvent(MEStreamStarted, GUID_NULL, hr, &var);
         }
-    
+
         if (FAILED(hr)) { goto done; }
     }
 
@@ -471,7 +482,7 @@ HRESULT WavSource::Start(
         // Otherwise, deliver any queued samples.
         hr = m_pStream->DeliverQueuedSamples();
     }
-    
+
     if (FAILED(hr)) { goto done; }
 
     m_state = STATE_STARTED;
@@ -507,15 +518,17 @@ done:
 
 HRESULT WavSource::Pause()
 {
+    ATLTRACE2("BENR: WavSource::Pause()");
+
     EnterCriticalSection(&m_critSec);
 
     HRESULT hr = S_OK;
-    
+
     hr = CheckShutdown();
 
     // Pause is only allowed from started state.
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_state != STATE_STARTED)
         {
             hr = MF_E_INVALID_STATE_TRANSITION;
@@ -524,7 +537,7 @@ HRESULT WavSource::Pause()
 
     // Send the appropriate events.
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_pStream)
         {
             hr = m_pStream->QueueEvent(MEStreamPaused, GUID_NULL, S_OK, NULL);
@@ -532,13 +545,13 @@ HRESULT WavSource::Pause()
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = QueueEvent(MESourcePaused, GUID_NULL, S_OK, NULL);
     }
 
     // Update our state. 
     if (SUCCEEDED(hr))
-    {   
+    {
         m_state = STATE_PAUSED;
     }
 
@@ -555,14 +568,16 @@ HRESULT WavSource::Pause()
 
 HRESULT WavSource::Stop()
 {
+    ATLTRACE2("BENR: WavSource::Stop()");
+
     EnterCriticalSection(&m_critSec);
 
     HRESULT hr = S_OK;
-    
+
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         // Update our state. 
         m_state = STATE_STOPPED;
 
@@ -575,14 +590,14 @@ HRESULT WavSource::Stop()
     //
 
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_pStream)
         {
             hr = m_pStream->QueueEvent(MEStreamStopped, GUID_NULL, S_OK, NULL);
         }
     }
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = QueueEvent(MESourceStopped, GUID_NULL, S_OK, NULL);
     }
 
@@ -603,14 +618,16 @@ HRESULT WavSource::Stop()
 
 HRESULT WavSource::Shutdown()
 {
+    ATLTRACE2("BENR: WavSource::Shutdown()");
+
     EnterCriticalSection(&m_critSec);
 
     HRESULT hr = S_OK;
-    
+
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         // Shut down the stream object.
         if (m_pStream)
         {
@@ -657,6 +674,8 @@ HRESULT WavSource::Shutdown()
 
 HRESULT WavSource::Open(IMFByteStream *pStream)
 {
+    ATLTRACE2("BENR: WavSource::Open()");
+
     EnterCriticalSection(&m_critSec);
 
     HRESULT hr = S_OK;
@@ -669,20 +688,20 @@ HRESULT WavSource::Open(IMFByteStream *pStream)
 
     // Create a new WAVE RIFF parser object to parse the stream.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = CWavRiffParser::Create(pStream, &m_pRiff);
     }
 
     // Parse the WAVE header. This fails if the header is not
     // well-formed.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pRiff->ParseWAVEHeader();
     }
 
     // Validate the WAVEFORMATEX structure from the file header.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = ValidateWaveFormat(m_pRiff->Format(), m_pRiff->FormatSize());
     }
 
@@ -711,8 +730,8 @@ HRESULT WavSource::Open(IMFByteStream *pStream)
 // audio format. Returns NULL if no format is set.
 //-------------------------------------------------------------------
 
-const WAVEFORMATEX* WavSource::WaveFormat() const 
-{ 
+const WAVEFORMATEX* WavSource::WaveFormat() const
+{
     if (m_pRiff)
     {
         return m_pRiff->Format();
@@ -729,8 +748,8 @@ const WAVEFORMATEX* WavSource::WaveFormat() const
 // Returns the size of the WAVEFORMATEX structure.
 //-------------------------------------------------------------------
 
-DWORD WavSource::WaveFormatSize() const 
-{  
+DWORD WavSource::WaveFormatSize() const
+{
     if (m_pRiff)
     {
         return m_pRiff->FormatSize();
@@ -750,6 +769,8 @@ DWORD WavSource::WaveFormatSize() const
 
 HRESULT WavSource::CreatePresentationDescriptor()
 {
+    ATLTRACE2("BENR: WavSource::CreatePresentationDescriptor()");
+
     HRESULT hr = S_OK;
     MFTIME duration = 0;
 
@@ -764,13 +785,13 @@ HRESULT WavSource::CreatePresentationDescriptor()
 
     // Initialize the media type from the WAVEFORMATEX structure.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = MFInitMediaTypeFromWaveFormatEx(pMediaType, WaveFormat(), WaveFormatSize());
     }
 
     // Create the stream descriptor.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = MFCreateStreamDescriptor(
             0,          // stream identifier
             1,          // Number of media types.
@@ -781,18 +802,18 @@ HRESULT WavSource::CreatePresentationDescriptor()
 
     // Set the default media type on the media type handler.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pStreamDescriptor->GetMediaTypeHandler(&pHandler);
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pHandler->SetCurrentMediaType(pMediaType);
     }
 
     // Create the presentation descriptor.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = MFCreatePresentationDescriptor(
             1,                      // Number of stream descriptors
             &pStreamDescriptor,     // Array of stream descriptors
@@ -802,13 +823,13 @@ HRESULT WavSource::CreatePresentationDescriptor()
 
     // Select the first stream
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pPresentationDescriptor->SelectStream(0);
     }
 
     // Set the file duration as an attribute on the presentation descriptor.
     if (SUCCEEDED(hr))
-    {   
+    {
         duration = m_pRiff->FileDuration();
         hr = m_pPresentationDescriptor->SetUINT64(MF_PD_DURATION, (UINT64)duration);
     }
@@ -839,6 +860,8 @@ HRESULT WavSource::CreatePresentationDescriptor()
 
 HRESULT WavSource::ValidatePresentationDescriptor(IMFPresentationDescriptor *pPD)
 {
+    ATLTRACE2("BENR: WavSource::ValidatePresentationDescriptor()");
+
     HRESULT hr;
 
     assert(pPD != NULL);
@@ -856,7 +879,7 @@ HRESULT WavSource::ValidatePresentationDescriptor(IMFPresentationDescriptor *pPD
     hr = pPD->GetStreamDescriptorCount(&cStreamDescriptors);
 
     if (SUCCEEDED(hr))
-    {   
+    {
         if (cStreamDescriptors != 1)
         {
             hr = MF_E_UNSUPPORTED_REPRESENTATION;
@@ -865,14 +888,14 @@ HRESULT WavSource::ValidatePresentationDescriptor(IMFPresentationDescriptor *pPD
 
     // Get the stream descriptor.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pPD->GetStreamDescriptorByIndex(0, &fSelected, &pStreamDescriptor);
     }
 
     // Make sure it's selected. (This media source has only one stream, so it
     // is not useful to deselect the only stream.)
     if (SUCCEEDED(hr))
-    {   
+    {
         if (!fSelected)
         {
             hr = MF_E_UNSUPPORTED_REPRESENTATION;
@@ -881,25 +904,25 @@ HRESULT WavSource::ValidatePresentationDescriptor(IMFPresentationDescriptor *pPD
 
     // Get the media type handler, so that we can get the media type.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pStreamDescriptor->GetMediaTypeHandler(&pHandler);
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pHandler->GetCurrentMediaType(&pMediaType);
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = MFCreateWaveFormatExFromMFMediaType(
-            pMediaType, 
+            pMediaType,
             &pFormat,
             &cbWaveFormat);
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         assert(this->WaveFormat() != NULL);
 
         if (cbWaveFormat < this->WaveFormatSize())
@@ -909,7 +932,7 @@ HRESULT WavSource::ValidatePresentationDescriptor(IMFPresentationDescriptor *pPD
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         if (memcmp(pFormat, WaveFormat(), WaveFormatSize()) != 0)
         {
             hr = MF_E_INVALIDMEDIATYPE;
@@ -939,17 +962,19 @@ HRESULT WavSource::ValidatePresentationDescriptor(IMFPresentationDescriptor *pPD
 
 HRESULT WavSource::QueueNewStreamEvent(IMFPresentationDescriptor *pPD)
 {
+    ATLTRACE2("BENR: WavSource::QueueNewStreamEvent()");
+
     assert(pPD != NULL);
 
     HRESULT hr = S_OK;
     IMFStreamDescriptor *pSD = NULL;
 
     BOOL fSelected = FALSE;
-    
+
     hr = pPD->GetStreamDescriptorByIndex(0, &fSelected, &pSD);
 
     if (SUCCEEDED(hr))
-    {   
+    {
         // The stream must be selected, because we don't allow the app
         // to de-select the stream. See ValidatePresentationDescriptor.
         assert(fSelected);
@@ -958,7 +983,7 @@ HRESULT WavSource::QueueNewStreamEvent(IMFPresentationDescriptor *pPD)
         {
             // The stream already exists, and is still selected.
             // Send the MEUpdatedStream event.
-            hr = QueueEventWithIUnknown(this, MEUpdatedStream, S_OK, m_pStream); 
+            hr = QueueEventWithIUnknown(this, MEUpdatedStream, S_OK, m_pStream);
         }
         else
         {
@@ -968,7 +993,7 @@ HRESULT WavSource::QueueNewStreamEvent(IMFPresentationDescriptor *pPD)
             hr = CreateWavStream(pSD);
 
             if (SUCCEEDED(hr))
-            {   
+            {
                 // CreateWavStream creates the stream, so m_pStream is no longer NULL.
                 assert(m_pStream != NULL);
 
@@ -989,6 +1014,8 @@ HRESULT WavSource::QueueNewStreamEvent(IMFPresentationDescriptor *pPD)
 
 HRESULT WavSource::CreateWavStream(IMFStreamDescriptor *pSD)
 {
+    ATLTRACE2("BENR: WavSource::CreateWavStream()");
+
     HRESULT hr = S_OK;
     m_pStream = new (std::nothrow) WavStream(this, m_pRiff, pSD, hr);
 
@@ -1038,13 +1065,13 @@ LONGLONG WavSource::GetCurrentPosition() const
 //-------------------------------------------------------------------
 
 
-WavStream::WavStream(WavSource *pSource,  CWavRiffParser *pRiff, IMFStreamDescriptor *pSD, HRESULT& hr) :
-    m_nRefCount(1),
-    m_pEventQueue(NULL),
-    m_IsShutdown(FALSE),
-    m_rtCurrentPosition(0),
-    m_discontinuity(FALSE),
-    m_EOS(FALSE)
+WavStream::WavStream(WavSource *pSource, CWavRiffParser *pRiff, IMFStreamDescriptor *pSD, HRESULT& hr) :
+m_nRefCount(1),
+m_pEventQueue(NULL),
+m_IsShutdown(FALSE),
+m_rtCurrentPosition(0),
+m_discontinuity(FALSE),
+m_EOS(FALSE)
 {
     m_pSource = pSource;
     m_pSource->AddRef();
@@ -1094,7 +1121,7 @@ ULONG  WavStream::Release()
 
 HRESULT WavStream::QueryInterface(REFIID iid, void** ppv)
 {
-    static const QITAB qit[] = 
+    static const QITAB qit[] =
     {
         QITABENT(WavStream, IMFMediaEventGenerator),
         QITABENT(WavStream, IMFMediaStream),
@@ -1109,13 +1136,15 @@ HRESULT WavStream::QueryInterface(REFIID iid, void** ppv)
 
 HRESULT WavStream::BeginGetEvent(IMFAsyncCallback* pCallback, IUnknown* punkState)
 {
+    ATLTRACE2("BENR: WavStream::BeginGetEvent()");
+
     HRESULT hr = S_OK;
 
     EnterCriticalSection(&m_critSec);
 
     hr = CheckShutdown();
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pEventQueue->BeginGetEvent(pCallback, punkState);
     }
 
@@ -1125,13 +1154,15 @@ HRESULT WavStream::BeginGetEvent(IMFAsyncCallback* pCallback, IUnknown* punkStat
 
 HRESULT WavStream::EndGetEvent(IMFAsyncResult* pResult, IMFMediaEvent** ppEvent)
 {
+    ATLTRACE2("BENR: WavStream::EndGetEvent()");
+
     HRESULT hr = S_OK;
 
     EnterCriticalSection(&m_critSec);
 
     hr = CheckShutdown();
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pEventQueue->EndGetEvent(pResult, ppEvent);
     }
 
@@ -1141,16 +1172,18 @@ HRESULT WavStream::EndGetEvent(IMFAsyncResult* pResult, IMFMediaEvent** ppEvent)
 
 HRESULT WavStream::GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent)
 {
+    ATLTRACE2("BENR: WavStream::GetEvent()");
+
     HRESULT hr = S_OK;
 
     IMFMediaEventQueue *pQueue = NULL;
-    
+
     EnterCriticalSection(&m_critSec);
 
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         pQueue = m_pEventQueue;
         pQueue->AddRef();
     }
@@ -1158,7 +1191,7 @@ HRESULT WavStream::GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent)
     LeaveCriticalSection(&m_critSec);
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pQueue->GetEvent(dwFlags, ppEvent);
     }
 
@@ -1168,13 +1201,15 @@ HRESULT WavStream::GetEvent(DWORD dwFlags, IMFMediaEvent** ppEvent)
 
 HRESULT WavStream::QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRESULT hrStatus, const PROPVARIANT* pvValue)
 {
+    ATLTRACE2("BENR: WavStream::QueueEvent()");
+
     HRESULT hr = S_OK;
 
     EnterCriticalSection(&m_critSec);
 
     hr = CheckShutdown();
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pEventQueue->QueueEventParamVar(met, guidExtendedType, hrStatus, pvValue);
     }
 
@@ -1193,6 +1228,8 @@ HRESULT WavStream::QueueEvent(MediaEventType met, REFGUID guidExtendedType, HRES
 
 HRESULT WavStream::GetMediaSource(IMFMediaSource** ppMediaSource)
 {
+    ATLTRACE2("BENR: WavStream::GetMediaSource()");
+
     if (ppMediaSource == NULL)
     {
         return E_POINTER;
@@ -1201,14 +1238,14 @@ HRESULT WavStream::GetMediaSource(IMFMediaSource** ppMediaSource)
     EnterCriticalSection(&m_critSec);
 
     HRESULT hr = S_OK;
-    
+
     // If called after shutdown, them m_pSource is NULL.
     // Otherwise, m_pSource should not be NULL.
 
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_pSource == NULL)
         {
             hr = E_UNEXPECTED;
@@ -1216,7 +1253,7 @@ HRESULT WavStream::GetMediaSource(IMFMediaSource** ppMediaSource)
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pSource->QueryInterface(IID_PPV_ARGS(ppMediaSource));
     }
 
@@ -1232,6 +1269,8 @@ HRESULT WavStream::GetMediaSource(IMFMediaSource** ppMediaSource)
 
 HRESULT WavStream::GetStreamDescriptor(IMFStreamDescriptor** ppStreamDescriptor)
 {
+    ATLTRACE2("BENR: WavStream::GetStreamDescriptor()");
+
     if (ppStreamDescriptor == NULL)
     {
         return E_POINTER;
@@ -1245,11 +1284,11 @@ HRESULT WavStream::GetStreamDescriptor(IMFStreamDescriptor** ppStreamDescriptor)
     EnterCriticalSection(&m_critSec);
 
     HRESULT hr = S_OK;
-    
+
     hr = CheckShutdown();
 
     if (SUCCEEDED(hr))
-    {   
+    {
         *ppStreamDescriptor = m_pStreamDescriptor;
         (*ppStreamDescriptor)->AddRef();
     }
@@ -1270,10 +1309,7 @@ HRESULT WavStream::GetStreamDescriptor(IMFStreamDescriptor** ppStreamDescriptor)
 
 HRESULT WavStream::RequestSample(IUnknown* pToken)
 {
-    if (m_pSource == NULL)
-    {
-        return E_UNEXPECTED;
-    }
+    ATLTRACE2("BENR: WavStream::RequestSample()");
 
     HRESULT hr = S_OK;
 
@@ -1282,36 +1318,14 @@ HRESULT WavStream::RequestSample(IUnknown* pToken)
 
     EnterCriticalSection(&m_critSec);
 
-    // Check if we are shut down.
-    hr = CheckShutdown();
-
-    // Check if we already reached the end of the stream.
     if (SUCCEEDED(hr))
-    {   
-        if (m_EOS)
-        {
-            hr = MF_E_END_OF_STREAM;
-        }
-    }
-
-    // Check the source is stopped.
-    // GetState does not hold the source's critical section. Safe to call.
-    if (SUCCEEDED(hr))
-    {   
-        if (m_pSource->GetState() == WavSource::STATE_STOPPED)
-        {
-            hr = MF_E_INVALIDREQUEST;
-        }
-    }
-
-    if (SUCCEEDED(hr))
-    {   
+    {
         // Create a new audio sample.
         hr = CreateAudioSample(&pSample);
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         // If the caller provided a token, attach it to the sample as
         // an attribute. 
 
@@ -1324,24 +1338,16 @@ HRESULT WavStream::RequestSample(IUnknown* pToken)
         }
     }
 
-    // If paused, queue the sample for later delivery. Otherwise, deliver the sample now.
     if (SUCCEEDED(hr))
-    {   
-        if (m_pSource->GetState() == WavSource::STATE_PAUSED)
-        {
-            hr = m_sampleQueue.Queue(pSample);
-        }
-        else
-        {
-            hr = DeliverSample(pSample);
-        }
+    {
+        hr = DeliverSample(pSample);
     }
 
     // Cache a pointer to the source, prior to leaving the critical section.
     if (SUCCEEDED(hr))
-    {   
+    {
         pSource = m_pSource;
-        pSource->AddRef();
+        //pSource->AddRef();
     }
 
     LeaveCriticalSection(&m_critSec);
@@ -1355,7 +1361,7 @@ HRESULT WavStream::RequestSample(IUnknown* pToken)
     // risk of deadlock. 
 
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_EOS)
         {
             hr = pSource->QueueEvent(MEEndOfPresentation, GUID_NULL, S_OK, NULL);
@@ -1380,6 +1386,8 @@ HRESULT WavStream::RequestSample(IUnknown* pToken)
 
 HRESULT WavStream::CreateAudioSample(IMFSample **ppSample)
 {
+    ATLTRACE2("BENR: WavStream::CreateAudioSample()");
+
     HRESULT hr = S_OK;
 
     IMFMediaBuffer *pBuffer = NULL;
@@ -1400,55 +1408,55 @@ HRESULT WavStream::CreateAudioSample(IMFSample **ppSample)
 
     // Get a pointer to the buffer memory.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pBuffer->Lock(&pData, NULL, NULL);
     }
 
     // Fill the buffer
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = m_pRiff->ReadDataFromChunk(pData, cbBuffer);
     }
 
     // Unlock the buffer.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pBuffer->Unlock();
         pData = NULL;
     }
 
     // Set the size of the valid data in the buffer.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pBuffer->SetCurrentLength(cbBuffer);
     }
 
     // Create a new sample and add the buffer to it.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = MFCreateSample(&pSample);
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pSample->AddBuffer(pBuffer);
     }
 
     // Set the time stamps, duration, and sample flags.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = pSample->SetSampleTime(m_rtCurrentPosition);
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         duration = AudioDurationFromBufferSize(m_pRiff->Format(), cbBuffer);
         hr = pSample->SetSampleDuration(duration);
     }
 
     // Set the discontinuity flag.
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_discontinuity)
         {
             hr = pSample->SetUINT32(MFSampleExtension_Discontinuity, TRUE);
@@ -1456,7 +1464,7 @@ HRESULT WavStream::CreateAudioSample(IMFSample **ppSample)
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         // Update our current position.
         m_rtCurrentPosition += duration;
 
@@ -1481,14 +1489,16 @@ HRESULT WavStream::CreateAudioSample(IMFSample **ppSample)
 //-------------------------------------------------------------------
 HRESULT WavStream::DeliverSample(IMFSample *pSample)
 {
+    ATLTRACE2("BENR: WavStream::DeliverSample()");
+
     HRESULT hr = S_OK;
 
     // Send the MEMediaSample event with the new sample.
-    hr = QueueEventWithIUnknown(this, MEMediaSample, hr, pSample); 
+    hr = QueueEventWithIUnknown(this, MEMediaSample, hr, pSample);
 
     // See if we reached the end of the stream.
     if (SUCCEEDED(hr))
-    {   
+    {
         hr = CheckEndOfStream();    // This method sends MEEndOfStream if needed.
     }
 
@@ -1507,6 +1517,8 @@ HRESULT WavStream::DeliverSample(IMFSample *pSample)
 
 HRESULT WavStream::DeliverQueuedSamples()
 {
+    ATLTRACE2("BENR: WavStream::DeliverQueuedSamples()");
+
     HRESULT hr = S_OK;
     IMFSample *pSample = NULL;
 
@@ -1520,7 +1532,7 @@ HRESULT WavStream::DeliverQueuedSamples()
     }
 
     if (SUCCEEDED(hr))
-    {   
+    {
         // Deliver any queued samples. 
         while (!m_sampleQueue.IsEmpty())
         {
@@ -1545,7 +1557,7 @@ HRESULT WavStream::DeliverQueuedSamples()
     // If we reached the end of the stream, send the end-of-presentation event from
     // the media source.
     if (SUCCEEDED(hr))
-    {   
+    {
         if (m_EOS)
         {
             hr = m_pSource->QueueEvent(MEEndOfPresentation, GUID_NULL, S_OK, NULL);
@@ -1564,6 +1576,8 @@ HRESULT WavStream::DeliverQueuedSamples()
 
 HRESULT WavStream::Flush()
 {
+    ATLTRACE2("BENR: WavStream::Flush()");
+
     EnterCriticalSection(&m_critSec);
 
     m_sampleQueue.Clear();
@@ -1580,6 +1594,8 @@ HRESULT WavStream::Flush()
 
 HRESULT WavStream::Shutdown()
 {
+    ATLTRACE2("BENR: WavStream::Shutdown()");
+
     EnterCriticalSection(&m_critSec);
 
     // Flush queued samples.
@@ -1594,7 +1610,7 @@ HRESULT WavStream::Shutdown()
     SafeRelease(&m_pEventQueue);
     SafeRelease(&m_pSource);
     SafeRelease(&m_pStreamDescriptor);
-   
+
     m_pRiff = NULL;
 
     m_IsShutdown = TRUE;
@@ -1610,6 +1626,8 @@ HRESULT WavStream::Shutdown()
 
 HRESULT WavStream::SetPosition(LONGLONG rtNewPosition)
 {
+    ATLTRACE2("BENR: WavStream::SetPosition()");
+
     EnterCriticalSection(&m_critSec);
 
     // Check if the requested position is beyond the end of the stream.
@@ -1635,7 +1653,7 @@ HRESULT WavStream::SetPosition(LONGLONG rtNewPosition)
         hr = m_pRiff->MoveToChunkOffset((DWORD)offset);
 
         if (SUCCEEDED(hr))
-        {   
+        {
             m_rtCurrentPosition = rtNewPosition;
             m_discontinuity = TRUE;
             m_EOS = FALSE;
@@ -1648,6 +1666,8 @@ HRESULT WavStream::SetPosition(LONGLONG rtNewPosition)
 
 HRESULT WavStream::CheckEndOfStream()
 {
+    ATLTRACE2("BENR: WavStream::CheckEndOfStream()");
+
     HRESULT hr = S_OK;
 
     if (m_pRiff->BytesRemainingInChunk() < m_pRiff->Format()->nBlockAlign)
@@ -1660,7 +1680,7 @@ HRESULT WavStream::CheckEndOfStream()
         // Send the end-of-stream event,
         hr = QueueEvent(MEEndOfStream, GUID_NULL, S_OK, NULL);
     }
-    return hr; 
+    return hr;
 }
 
 
@@ -1685,6 +1705,7 @@ HRESULT QueueEventWithIUnknown(
     HRESULT hrStatus,
     IUnknown *pUnk)
 {
+    ATLTRACE2("BENR: HRESULT QueueEventWithIUnknown");
 
     // Create the PROPVARIANT to hold the IUnknown value.
     PROPVARIANT var;
@@ -1746,12 +1767,12 @@ HRESULT ValidateWaveFormat(const WAVEFORMATEX *pWav, DWORD cbSize)
 
     // Make sure block alignment was calculated correctly.
     if (pWav->nBlockAlign != pWav->nChannels * (pWav->wBitsPerSample / 8))
-    {   
+    {
         return MF_E_INVALIDMEDIATYPE;
     }
 
     // Check possible overflow...
-    if (pWav->nSamplesPerSec  > (DWORD)(MAXDWORD / pWav->nBlockAlign))        // Is (nSamplesPerSec * nBlockAlign > MAXDWORD) ?
+    if (pWav->nSamplesPerSec > (DWORD)(MAXDWORD / pWav->nBlockAlign))        // Is (nSamplesPerSec * nBlockAlign > MAXDWORD) ?
     {
         return MF_E_INVALIDMEDIATYPE;
     }
@@ -1784,7 +1805,7 @@ LONGLONG BufferSizeFromAudioDuration(const WAVEFORMATEX *pWav, LONGLONG duration
     ULONG ulRemainder = (ULONG)(cbSize % pWav->nBlockAlign);
 
     // Round up to the next block. 
-    if(ulRemainder) 
+    if (ulRemainder)
     {
         cbSize += pWav->nBlockAlign - ulRemainder;
     }
